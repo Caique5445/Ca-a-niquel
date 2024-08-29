@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Caça-Níquel com Sistema de Dinheiro</title>
+    <title>Caça-Níquel com Minigames</title>
     <style>
         body {
             text-align: center;
@@ -13,6 +13,7 @@
             margin: 0;
             padding: 0;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
@@ -22,12 +23,13 @@
             font-size: 3em;
             text-shadow: 2px 2px 4px #000;
         }
-        .slot-machine {
+        .slot-machine, .minigame {
             display: inline-block;
             padding: 20px;
             border-radius: 15px;
             background-color: #444;
             box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.5);
+            margin-top: 20px;
         }
         .slot {
             width: 100px;
@@ -83,12 +85,18 @@
             text-align: center;
             box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
         }
+        button:disabled {
+            background-color: #a0c4ff;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
-    <div>
-        <h1>Caça-Níquel</h1>
-        <div class="slot-machine">
+    <h1>Caça-Níquel com Minigames</h1>
+
+    <div class="slot-machine">
+        <h2>Caça-Níquel</h2>
+        <div>
             <div id="slot1" class="slot">🍒</div>
             <div id="slot2" class="slot">🍋</div>
             <div id="slot3" class="slot">🔔</div>
@@ -97,9 +105,25 @@
         <label for="bet">Aposta:</label>
         <input type="number" id="bet" min="1" value="10">
         <br>
-        <button onclick="spin()">Girar</button>
+        <button id="spinButton" onclick="spin()">Girar</button>
         <p id="result"></p>
         <p id="money"></p>
+    </div>
+
+    <div class="minigame">
+        <h2>Minigame 1: Adivinhe o Número</h2>
+        <p>Adivinhe um número entre 1 e 5.</p>
+        <input type="number" id="guess" min="1" max="5">
+        <button onclick="playGuessingGame()">Jogar</button>
+        <p id="guessResult"></p>
+    </div>
+
+    <div class="minigame">
+        <h2>Minigame 2: Cara ou Coroa</h2>
+        <p>Aposte se vai cair cara ou coroa.</p>
+        <button onclick="playCoinFlip('cara')">Cara</button>
+        <button onclick="playCoinFlip('coroa')">Coroa</button>
+        <p id="coinFlipResult"></p>
     </div>
 
     <audio id="spinSound" src="https://www.fesliyanstudios.com/play-mp3/387"></audio>
@@ -107,22 +131,28 @@
     <audio id="loseSound" src="https://www.fesliyanstudios.com/play-mp3/387"></audio>
 
     <script>
-        let money = 1000; // Dinheiro inicial do jogador
+        let money = 100; // Dinheiro inicial do jogador
+        let isSpinning = false;
 
         const images = ['🍒', '🍋', '🔔', '🍇', '⭐'];
         const spinSound = document.getElementById('spinSound');
         const winSound = document.getElementById('winSound');
         const loseSound = document.getElementById('loseSound');
         const moneyDisplay = document.getElementById('money');
+        const spinButton = document.getElementById('spinButton');
         moneyDisplay.textContent = `Dinheiro: R$ ${money}`;
 
         function spin() {
+            if (isSpinning) return; // Impede que o botão seja apertado enquanto está girando
+
             const bet = parseInt(document.getElementById('bet').value);
             if (bet > money) {
                 document.getElementById('result').textContent = 'Você não tem dinheiro suficiente para essa aposta!';
                 return;
             }
 
+            isSpinning = true;
+            spinButton.disabled = true;
             spinSound.play();
 
             const slot1 = document.getElementById('slot1');
@@ -162,11 +192,59 @@
                     document.getElementById('result').textContent = 'Você perdeu todo o seu dinheiro! Fim de jogo!';
                     moneyDisplay.textContent = `Dinheiro: R$ 0`;
                 }
+
+                setTimeout(() => {
+                    isSpinning = false;
+                    spinButton.disabled = false;
+                }, 1000); // Espera 1 segundo antes de permitir que o botão seja apertado novamente
             }, 500);
         }
 
         function getRandomImage() {
             return images[Math.floor(Math.random() * images.length)];
+        }
+
+        function playGuessingGame() {
+            const guess = parseInt(document.getElementById('guess').value);
+            const randomNumber = Math.floor(Math.random() * 5) + 1;
+
+            if (guess === randomNumber) {
+                money += 20;
+                document.getElementById('guessResult').textContent = `Você acertou! O número era ${randomNumber}. Você ganhou R$20!`;
+                winSound.play();
+            } else {
+                money -= 10;
+                document.getElementById('guessResult').textContent = `Você errou! O número era ${randomNumber}. Você perdeu R$10.`;
+                loseSound.play();
+            }
+
+            moneyDisplay.textContent = `Dinheiro: R$ ${money}`;
+            checkGameOver();
+        }
+
+        function playCoinFlip(choice) {
+            const outcomes = ['cara', 'coroa'];
+            const randomOutcome = outcomes[Math.floor(Math.random() * outcomes.length)];
+
+            if (choice === randomOutcome) {
+                money += 15;
+                document.getElementById('coinFlipResult').textContent = `Deu ${randomOutcome}! Você ganhou R$15!`;
+                winSound.play();
+            } else {
+                money -= 10;
+                document.getElementById('coinFlipResult').textContent = `Deu ${randomOutcome}. Você perdeu R$10.`;
+                loseSound.play();
+            }
+
+            moneyDisplay.textContent = `Dinheiro: R$ ${money}`;
+            checkGameOver();
+        }
+
+        function checkGameOver() {
+            if (money <= 0) {
+                document.getElementById('result').textContent = 'Você perdeu todo o seu dinheiro! Fim de jogo!';
+                moneyDisplay.textContent = `Dinheiro: R$ 0`;
+            }
         }
     </script>
 </body>
